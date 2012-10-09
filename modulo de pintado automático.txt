@@ -1,0 +1,26 @@
+
+editUtil = EditorLib.EditUtil.EditUtil()
+parameterNode = editUtil.getParameterNode()
+lm = slicer.app.layoutManager()
+paintEffect = EditorLib.PaintEffectOptions()
+paintEffect.setMRMLDefaults()
+paintEffect.__del__()
+sliceWidget = lm.sliceWidget('Red')
+sliceWidget = lm.sliceWidget('Red')
+paintTool = EditorLib.PaintEffectTool(sliceWidget)
+paintTool.radius = 30
+editUtil.setLabel(0)
+slicerLogic = sliceWidget.sliceLogic()
+
+for s in xrange(0,100,5):
+ for x in xrange(170,185):
+  for y in xrange(97,125):
+   paintTool.paintAddPoint(x,y)
+   paintTool.paintApply()
+ slicerLogic.SetSliceOffset(s)
+
+
+iOption = EditorLib.IdentifyIslandsEffectOptions()
+iTool = iOption.tools
+iEffect= iOption.logic
+iEffect.removeIslands()
