@@ -1,12 +1,11 @@
 from __main__ import vtk, qt, ctk, slicer
-
-
 #
 # diagnosis
 #
 
 class diagnosis:
   def __init__(self, parent):
+    
     parent.title = "Diagnostics" # TODO make this more human readable by adding spaces
     parent.categories = ["Diagnostics"]
     parent.dependencies = []
@@ -15,7 +14,7 @@ class diagnosis:
     This is a ang
     """
     parent.acknowledgementText = """
-    Este modulo fue desarrollado como parte del desarrollo del proyecto de grado
+    Este modulo fue IN desarrollado como parte del desarrollo del proyecto de grado
 """ # replace with organization, grant and thanks.
     self.parent = parent
 
@@ -29,41 +28,42 @@ class diagnosisWidget:
       self.parent = slicer.qMRMLWidget()
       self.parent.setLayout(qt.QVBoxLayout())
       self.parent.setMRMLScene(slicer.mrmlScene)
+      
     else:
       self.parent = parent
     self.grayscaleNode = None
     self.labelNode = None
     self.layout = self.parent.layout()
+    
     if not parent:
       self.setup()
       self.parent.show()
 
   def setup(self):
+    
     # Instantiate and connect widgets ...
 
-    # reload button
-    # (use this during development, but remove it when delivering
-    #  your module to users)
+    
     
     
     
     # Collapsible button
-    dummyCollapsibleButton = ctk.ctkCollapsibleButton()
-    dummyCollapsibleButton.text = "Parameters"
-    self.layout.addWidget(dummyCollapsibleButton)
+    paramCollapsibleButton = ctk.ctkCollapsibleButton()
+    paramCollapsibleButton.text = "Parameters"
+    self.layout.addWidget(paramCollapsibleButton)
 
-    # Layout within the dummy collapsible button
-    dummyFormLayout = qt.QFormLayout(dummyCollapsibleButton)
+    # Layout within the param collapsible button
+    paramFormLayout = qt.QFormLayout(paramCollapsibleButton)
 
     #LABEL VOLUME SELECTOR
 
     self.labelSelectorFrame = qt.QFrame()
     self.labelSelectorFrame.setLayout( qt.QHBoxLayout() )
-    dummyFormLayout.addWidget( self.labelSelectorFrame )
+    paramFormLayout.addWidget( self.labelSelectorFrame )
 
     self.labelSelectorLabel = qt.QLabel()
     self.labelSelectorLabel.setText( "Label Map: " )
-    dummyFormLayout.addWidget( self.labelSelectorLabel )
+    paramFormLayout.addWidget( self.labelSelectorLabel )
 
     self.labelSelector = slicer.qMRMLNodeComboBox()
     self.labelSelector.nodeTypes = ( "vtkMRMLScalarVolumeNode", "" )
@@ -77,18 +77,18 @@ class diagnosisWidget:
     self.labelSelector.showChildNodeTypes = False
     self.labelSelector.setMRMLScene( slicer.mrmlScene )
     self.labelSelector.setToolTip( "Pick the label map to edit" )
-    dummyFormLayout.addWidget( self.labelSelector )
+    paramFormLayout.addWidget( self.labelSelector )
     self.labelSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onLabelSelect)
 
     # the grayscale volume selector
     #
     self.grayscaleSelectorFrame = qt.QFrame(self.parent)
     self.grayscaleSelectorFrame.setLayout(qt.QHBoxLayout())
-    dummyFormLayout.addWidget(self.grayscaleSelectorFrame)
+    paramFormLayout.addWidget(self.grayscaleSelectorFrame)
 
     self.grayscaleSelectorLabel = qt.QLabel("Grayscale Volume: ", self.grayscaleSelectorFrame)
     self.grayscaleSelectorLabel.setToolTip( "Select the grayscale volume (background grayscale scalar volume node) for statistics calculations")
-    dummyFormLayout.addWidget(self.grayscaleSelectorLabel)
+    paramFormLayout.addWidget(self.grayscaleSelectorLabel)
 
     self.grayscaleSelector = slicer.qMRMLNodeComboBox(self.grayscaleSelectorFrame)
     self.grayscaleSelector.nodeTypes = ( ("vtkMRMLScalarVolumeNode"), "" )
@@ -102,9 +102,42 @@ class diagnosisWidget:
     self.grayscaleSelector.setMRMLScene( slicer.mrmlScene )
     # TODO: need to add a QLabel
     # self.grayscaleSelector.SetLabelText( "Master Volume:" )
-    dummyFormLayout.addWidget(self.grayscaleSelector)
+    paramFormLayout.addWidget(self.grayscaleSelector)
     self.grayscaleSelector.connect('currentNodeChanged(vtkMRMLNode*)', self.onGrayscaleSelect)
+
+
     
+    #Results collapsible button
+    resCollapsibleButton = ctk.ctkCollapsibleButton()
+    resCollapsibleButton.text = "Results"
+    self.layout.addWidget(resCollapsibleButton)
+
+    #layout within the results collapsible button
+    resFormLayout = qt.QFormLayout(resCollapsibleButton)
+
+    self.resFrame = qt.QFrame(self.parent)
+    self.resFrame.setLayout( qt.QHBoxLayout() )
+    resFormLayout.addWidget(self.resFrame)
+
+    self.resLabel = qt.QLabel()
+    self.resLabel.setText("stenosis percent of the most pathological segment: ")
+    resFormLayout.addWidget( self.resLabel )                    
+
+    self.resultLabel = qt.QLabel()
+    self.resultLabel.setText("")
+    resFormLayout.addWidget( self.resultLabel )
+
+    self.sSliceLabel = qt.QLabel()
+    self.sSliceLabel.setText("Most stenotic slice ")
+    resFormLayout.addWidget( self.sSliceLabel )
+
+    self.resSliceLabel = qt.QLabel()
+    self.resSliceLabel.setText("")
+    resFormLayout.addWidget( self.resSliceLabel )
+
+    
+
+    #reload button
     self.reloadButton = qt.QPushButton("Reload")
     self.reloadButton.toolTip = "Reload this module."
     self.reloadButton.name = "diagnosis Reload"
@@ -117,7 +150,7 @@ class diagnosisWidget:
     # Calculate button
     self.calcButton = qt.QPushButton("Calculates")
     self.calcButton.toolTip = "Calculates the stenosis on the most patological slice"
-    dummyFormLayout.addWidget(self.calcButton)
+    paramFormLayout.addWidget(self.calcButton)
     self.calcButton.enabled = False
     self.calcButton.connect('clicked(bool)', self.onCalcButtonClicked)
 
@@ -127,9 +160,15 @@ class diagnosisWidget:
     # Set local var as instance attribute
     #self.calcButton = calcButton
 
+
+
   def onCalcButtonClicked(self):
-    print "Hello World !"
-    LabelStatisticsLogic(self.grayscaleNode, self.labelNode)
+    
+    lbDiag=LabelBasedDiagnosisLogic(self.grayscaleNode, self.labelNode)
+    a= lbDiag.getStenosisPercentage()
+    self.resultLabel.setText(a)
+    lbDiag.getSmallestSegmentRAS()
+    self.resSliceLabel.setText(lbDiag.rast)
     
   
     
@@ -183,7 +222,7 @@ class diagnosisWidget:
     globals()[widgetName.lower()].setup()
     
 
-class LabelStatisticsLogic:
+class LabelBasedDiagnosisLogic:
   """Implement the logic to calculate label statistics.
   Nodes are passed in as arguments.
   Results are stored as 'statistics' instance variable.
@@ -207,17 +246,33 @@ class LabelStatisticsLogic:
         nonZeroLabels.append(i)
     return nonZeroLabels
   
-  def __init__(self, grayscaleNode, labelNode, fileName=None):
-    #import numpy
+  def __init__(self,grayscaleNode, labelNode, fileName=None):
+    self.grayscaleNode = grayscaleNode
+    import numpy
+    self.labelNode = labelNode
 
+  def getSmallestSegmentRAS(self):
+    import vtk
+    volNode = slicer.util.getNode('CTACardio-label')
+    volIJKToRASMat = vtk.vtkMatrix4x4()
+    volNode.GetIJKToRASMatrix(volIJKToRASMat)
+    a=(self.sSegmentIJK[2],self.sSegmentIJK[1],self.sSegmentIJK[0],1)
+    rast = volIJKToRASMat.MultiplyPoint(a)
+    self.rast = rast[2]
+    print rast
+    
+
+  def getStenosisPercentage(self):
+    import numpy
+      
     self.keys = ("Index", "Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
-    cubicMMPerVoxel = reduce(lambda x,y: x*y, labelNode.GetSpacing())
+    cubicMMPerVoxel = reduce(lambda x,y: x*y, self.labelNode.GetSpacing())
     ccPerCubicMM = 0.001
     
 
     #geting a set of labels from a label map
     
-    labels = self.getLabelsFromLabelMap(labelNode)
+    labels = self.getLabelsFromLabelMap(self.labelNode)
     print "NON - ZERO     LABELS-----------------------------"
     print labels
 
@@ -228,7 +283,7 @@ class LabelStatisticsLogic:
     self.labelStats['Labels'] = []
    
     stataccum = vtk.vtkImageAccumulate()
-    stataccum.SetInput(labelNode.GetImageData())
+    stataccum.SetInput(self.labelNode.GetImageData())
     
     stataccum.Update()
     lo = int(stataccum.GetMin()[0])
@@ -238,17 +293,19 @@ class LabelStatisticsLogic:
 
     aux1=999999999999999999999999999999999
     aux2=999999999999999999999999999999999
-
+    smallestLabel=0
+    segmentCount=0
+    #This loop finds the most pathological segment(the smallest one)
     for i in xrange(lo,hi+1):
       print i
       
       thresholder = vtk.vtkImageThreshold()
-      thresholder.SetInput(labelNode.GetImageData())
+      thresholder.SetInput(self.labelNode.GetImageData())
       thresholder.SetInValue(1)
       thresholder.SetOutValue(0)
       thresholder.ReplaceOutOn()
       thresholder.ThresholdBetween(i,i)
-      thresholder.SetOutputScalarType(grayscaleNode.GetImageData().GetScalarType())
+      thresholder.SetOutputScalarType(self.grayscaleNode.GetImageData().GetScalarType())
       thresholder.Update()
       
       # this.InvokeEvent(vtkLabelStatisticsLogic::LabelStatsInnerLoop, (void*)"0.25");
@@ -261,12 +318,12 @@ class LabelStatisticsLogic:
       # this.InvokeEvent(vtkLabelStatisticsLogic::LabelStatsInnerLoop, (void*)"0.5")
       
       stat1 = vtk.vtkImageAccumulate()
-      stat1.SetInput(grayscaleNode.GetImageData())
+      stat1.SetInput(self.grayscaleNode.GetImageData())
       stat1.SetStencil(stencil.GetOutput())
       stat1.Update()
 
       # this.InvokeEvent(vtkLabelStatisticsLogic::LabelStatsInnerLoop, (void*)"0.75")
-
+     
       if stat1.GetVoxelCount() > 0:
         # add an entry to the LabelStats list
         self.labelStats["Labels"].append(i)
@@ -281,11 +338,62 @@ class LabelStatisticsLogic:
         self.labelStats[i,"StdDev"] = stat1.GetStandardDeviation()[0]
 
         aux1= stat1.GetVoxelCount()
+        segmentCount=i
+        
         if aux1 < aux2 :
           aux2 = aux1
+          smallestLabel= i
     print "el menor"
     print aux2
+    print smallestLabel
+    print "numero total de segmentos"
+    print segmentCount
 
+    # Looking for the segment next to the most pathological one
+    ar = slicer.util.array('*label')
+    
+    w = numpy.transpose(numpy.where(ar==smallestLabel))
+    lenght= len(w)-1
+    self.sSegmentIJK=w[0]
+    sSegmentTopSlice= w[lenght][0]
+    sSegmentBottomSlice= w[0][0]
+    
+    print sSegmentTopSlice
+    print sSegmentBottomSlice
+
+    closeSegmentBot=0
+    closeSegmentTop=0
+    for c in xrange(2,segmentCount):
+      w = numpy.transpose(numpy.where(ar==c))
+      m1=sSegmentBottomSlice - 2
+      m2=sSegmentTopSlice + 2
+      laux = len(w)-1
+      if (w[0][0]== m2):
+        print "segmento cercano inferior"
+        print c
+        closeSegmentBot = c
+      if (w[laux][0] == m1):
+        print "segmento cercano superior"
+        print c
+        closeSegmentTop = c
+
+    #Calculating the stenosis
+
+    w=numpy.transpose(numpy.where(ar==closeSegmentBot))
+    stenosisPercentBot= (float(1)- (float(aux2)/len(w)))*100
+    print "el porcentaje de estenosis con respecto al segmento inferior"
+    print "{0:.2f}".format(stenosisPercentBot) + "%"
+    w=numpy.transpose(numpy.where(ar==closeSegmentTop))
+    stenosisPercentTop = (float(1)- (float(aux2)/len(w)))*100
+    print "el porcentaje de estenosis con respecto al segmento superior"
+    print "{0:.2f}".format(stenosisPercentTop) + "%"
+    return "{0:.2f}".format(stenosisPercentTop) + "%"
+    
+    
+    
+    
+    
+    
 
 
         
