@@ -70,6 +70,9 @@ class preDiagnosisWidget:
 
   def onHelloWorldButtonClicked(self):
     print "Hello World !"
+    pd=preDiagosisLogic()
+    pd.divideLabelMap()
+    pd.idIslandsEffect()
 
   def onReload(self,moduleName="preDiagnosis"):
     """Generic reload method for any scripted module.
@@ -109,3 +112,39 @@ class preDiagnosisWidget:
     globals()[widgetName.lower()] = eval(
         'globals()["%s"].%s(parent)' % (moduleName, widgetName))
     globals()[widgetName.lower()].setup()
+
+class preDiagosisLogic:
+  def __init__(self, filename=None):
+    import EditorLib
+    editUtil = EditorLib.EditUtil.EditUtil()
+    parameterNode = editUtil.getParameterNode()
+    lm = slicer.app.layoutManager()
+    paintEffect = EditorLib.PaintEffectOptions()
+    paintEffect.setMRMLDefaults()
+    paintEffect.__del__()
+    sliceWidget = lm.sliceWidget('Red')
+    self.paintTool = EditorLib.PaintEffectTool(sliceWidget)
+    self.paintTool.radius = 30
+    editUtil.setLabel(0)
+    self.slicerLogic = sliceWidget.sliceLogic()
+
+  def divideLabelMap(self):
+    self.slicerLogic.FitFOVToBackground(1821)
+    for s in xrange(-50,100,5):
+     print s
+     self.slicerLogic.SetSliceOffset(s) 
+     for x in xrange(140,175):
+      for y in xrange(130,165):
+       self.paintTool.paintAddPoint(x,y)
+       self.paintTool.paintApply()
+    self.slicerLogic.FitFOVToBackground(500)
+     
+  def idIslandsEffect(self):
+    import EditorLib
+    iOption = EditorLib.IdentifyIslandsEffectOptions()
+    iTool = iOption.tools
+    iEffect= iOption.logic
+    iEffect.removeIslands()
+    
+
+  
