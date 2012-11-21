@@ -7,7 +7,7 @@ from __main__ import vtk, qt, ctk, slicer
 class preDiagnosis:
   def __init__(self, parent):
     parent.title = "preDiagnosis" # TODO make this more human readable by adding spaces
-    parent.categories = ["Examples"]
+    parent.categories = ["Diagnosis"]
     parent.dependencies = []
     parent.contributors = ["Jean-Christophe Fillion-Robin (Kitware), Steve Pieper (Isomics)"] # replace with "Firstname Lastname (Org)"
     parent.helpText = """
@@ -49,30 +49,30 @@ class preDiagnosisWidget:
 
 
     # Collapsible button
-    dummyCollapsibleButton = ctk.ctkCollapsibleButton()
-    dummyCollapsibleButton.text = "A collapsible button"
-    self.layout.addWidget(dummyCollapsibleButton)
+    CollapsibleButton = ctk.ctkCollapsibleButton()
+    CollapsibleButton.text = "Pre-diagnosis"
+    self.layout.addWidget(CollapsibleButton)
 
     # Layout within the dummy collapsible button
-    dummyFormLayout = qt.QFormLayout(dummyCollapsibleButton)
+    FormLayout = qt.QFormLayout(CollapsibleButton)
 
     # HelloWorld button
-    helloWorldButton = qt.QPushButton("Hello world")
-    helloWorldButton.toolTip = "Print 'Hello world' in standard ouput."
-    dummyFormLayout.addWidget(helloWorldButton)
-    helloWorldButton.connect('clicked(bool)', self.onHelloWorldButtonClicked)
+    preDiagButton = qt.QPushButton("Pre-diagnosis data treatment")
+    preDiagButton.toolTip = "Divides the label map in analizable sub-sections"
+    FormLayout.addWidget(preDiagButton)
+    preDiagButton.connect('clicked(bool)', self.onPreDiagButtonClicked)
 
     # Add vertical spacer
     self.layout.addStretch(1)
 
     # Set local var as instance attribute
-    self.helloWorldButton = helloWorldButton
+    self.preDiagButton = preDiagButton
 
-  def onHelloWorldButtonClicked(self):
-    print "Hello World !"
-    pd=preDiagosisLogic()
-    pd.divideLabelMap()
-    pd.idIslandsEffect()
+  def onPreDiagButtonClicked(self):
+     #Creates an instance of the logic class
+    self.pd=preDiagosisLogic()
+    self.pd.divideLabelMap()
+    self.pd.idIslandsEffect()
 
   def onReload(self,moduleName="preDiagnosis"):
     """Generic reload method for any scripted module.
@@ -114,9 +114,12 @@ class preDiagnosisWidget:
     globals()[widgetName.lower()].setup()
 
 class preDiagosisLogic:
+
+  #Initialize all instance variables
   def __init__(self, filename=None):
     import EditorLib
     editUtil = EditorLib.EditUtil.EditUtil()
+  
     parameterNode = editUtil.getParameterNode()
     lm = slicer.app.layoutManager()
     paintEffect = EditorLib.PaintEffectOptions()
@@ -127,10 +130,12 @@ class preDiagosisLogic:
     self.paintTool.radius = 30
     editUtil.setLabel(0)
     self.slicerLogic = sliceWidget.sliceLogic()
-
+    self.editUtil = editUtil
+  #divideLabelMap divides the current label map by painting slices with "background" so the label map
+  #sub-sections can be analized in an easier way. This is done by using the paint effect from the editor module
   def divideLabelMap(self):
     self.slicerLogic.FitFOVToBackground(1821)
-    for s in xrange(-50,100,5):
+    for s in xrange(-100,0,5):
      print s
      self.slicerLogic.SetSliceOffset(s) 
      for x in xrange(140,175):
@@ -138,9 +143,11 @@ class preDiagosisLogic:
        self.paintTool.paintAddPoint(x,y)
        self.paintTool.paintApply()
     self.slicerLogic.FitFOVToBackground(500)
-     
+  #Changes each label map sub-section to a difeferent label color so they can be analized separately. This
+  #is done by using the identify label effect from the editor module 
   def idIslandsEffect(self):
     import EditorLib
+    self.iOption = EditorLib.IdentifyIslandsEffectOptions()
     iOption = EditorLib.IdentifyIslandsEffectOptions()
     iTool = iOption.tools
     iEffect= iOption.logic

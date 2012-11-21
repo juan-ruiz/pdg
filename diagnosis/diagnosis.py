@@ -17,7 +17,7 @@ class diagnosis:
     Este modulo fue IN desarrollado como parte del desarrollo del proyecto de grado
 """ # replace with organization, grant and thanks.
     self.parent = parent
-
+    
 #
 # qdiagnosisWidget
 #
@@ -164,11 +164,11 @@ class diagnosisWidget:
 
   def onCalcButtonClicked(self):
     
-    lbDiag=LabelBasedDiagnosisLogic(self.grayscaleNode, self.labelNode)
-    a= lbDiag.getStenosisPercentage()
-    self.resultLabel.setText(a)
-    lbDiag.getSmallestSegmentRAS()
-    self.resSliceLabel.setText(lbDiag.rast)
+    self.logic=LabelBasedDiagnosisLogic(self.grayscaleNode, self.labelNode)
+    self.logic.loadDiagnostic()
+    self.resultLabel.setText(self.logic.stenosisPercentage)
+    self.logic.getSmallestSegmentRAS()
+    self.resSliceLabel.setText(self.logic.rast)
     
   
     
@@ -228,7 +228,14 @@ class LabelBasedDiagnosisLogic:
   Results are stored as 'statistics' instance variable.
   """
 
+  #This method returns the set of all the segments that are disconected from
+  #each other contained in the label map that represents the segmentation done
+  #on the CT dataset
 
+  #Parameters: The label map that represents the segmentation done
+  #on the CT dataset
+
+  #Returns a set of 
   def getLabelsFromLabelMap(self, labelMapNode):
     if not labelMapNode:
       return
@@ -262,7 +269,28 @@ class LabelBasedDiagnosisLogic:
     print rast
     
 
-  def getStenosisPercentage(self):
+
+  def loadDiagnostic(self):
+    self.getSmallestSegment()
+    self.getStenosisPercentage(self.closeSegmentBottomMatrix,self.closeSegmentTopMatrix,self.smallestSegmentMatrix)
+
+  
+  def getStenosisPercentage(self,csbMatrix,cstMatrix,sMatrix):
+
+    
+    stenosisPercentBot= (float(1)- (float(len(sMatrix))/len(csbMatrix)))*100
+    print "el porcentaje de estenosis con respecto al segmento inferior"
+    print "{0:.2f}".format(stenosisPercentBot) + "%"
+    
+    stenosisPercentTop = (float(1)- (float(len(sMatrix))/len(cstMatrix)))*100
+    print "el porcentaje de estenosis con respecto al segmento superior"
+    print "{0:.2f}".format(stenosisPercentTop) + "%"
+    self.stenosisPercentage = "{0:.2f}".format(stenosisPercentTop) + "%"
+
+  #This method finds the smallest segment, as well as the segments that are both on top and bottom
+  #of the smallest segment, and sets them as instance variables
+    
+  def getSmallestSegment(self):
     import numpy
       
     self.keys = ("Index", "Count", "Volume mm^3", "Volume cc", "Min", "Max", "Mean", "StdDev")
@@ -316,7 +344,7 @@ class LabelBasedDiagnosisLogic:
       stencil.ThresholdBetween(1, 1)
       
       # this.InvokeEvent(vtkLabelStatisticsLogic::LabelStatsInnerLoop, (void*)"0.5")
-      
+      self.stat= vtk.vtkImageAccumulate()
       stat1 = vtk.vtkImageAccumulate()
       stat1.SetInput(self.grayscaleNode.GetImageData())
       stat1.SetStencil(stencil.GetOutput())
@@ -339,6 +367,7 @@ class LabelBasedDiagnosisLogic:
 
         aux1= stat1.GetVoxelCount()
         segmentCount=i
+        self.segmentCount=i
         
         if aux1 < aux2 :
           aux2 = aux1
@@ -353,16 +382,20 @@ class LabelBasedDiagnosisLogic:
     ar = slicer.util.array('*label')
     
     w = numpy.transpose(numpy.where(ar==smallestLabel))
+    self.smallestSegmentMatrix = w
     lenght= len(w)-1
     self.sSegmentIJK=w[0]
     sSegmentTopSlice= w[lenght][0]
     sSegmentBottomSlice= w[0][0]
-    
+    self.sSegmentTopSlice= w[lenght][0]
+    self.sSegmentBottomSlice= w[0][0]
     print sSegmentTopSlice
     print sSegmentBottomSlice
 
     closeSegmentBot=0
+    csbMatrix = 0
     closeSegmentTop=0
+    cstMatrix = 0
     for c in xrange(2,segmentCount):
       w = numpy.transpose(numpy.where(ar==c))
       m1=sSegmentBottomSlice - 2
@@ -371,23 +404,22 @@ class LabelBasedDiagnosisLogic:
       if (w[0][0]== m2):
         print "segmento cercano inferior"
         print c
+        print w
         closeSegmentBot = c
+        csbMatrix = w
       if (w[laux][0] == m1):
         print "segmento cercano superior"
         print c
         closeSegmentTop = c
+        cstMatrix = w
+      
 
-    #Calculating the stenosis
-
-    w=numpy.transpose(numpy.where(ar==closeSegmentBot))
-    stenosisPercentBot= (float(1)- (float(aux2)/len(w)))*100
-    print "el porcentaje de estenosis con respecto al segmento inferior"
-    print "{0:.2f}".format(stenosisPercentBot) + "%"
-    w=numpy.transpose(numpy.where(ar==closeSegmentTop))
-    stenosisPercentTop = (float(1)- (float(aux2)/len(w)))*100
-    print "el porcentaje de estenosis con respecto al segmento superior"
-    print "{0:.2f}".format(stenosisPercentTop) + "%"
-    return "{0:.2f}".format(stenosisPercentTop) + "%"
+    
+    
+    self.closeSegmentBottomMatrix=csbMatrix
+    
+    self.closeSegmentTopMatrix = cstMatrix
+    
     
     
     
